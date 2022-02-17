@@ -1,0 +1,11 @@
+<launch>
+
+  <node pkg="tcp_img_streamer" name="fs" type="frame_multistreamer.py" output="screen">
+    <!-- TODO put topic name here <arg name="port" value="8082" />  -->
+    <param name="init_delay" value="2" />
+  </node>
+
+  <!-- <node pkg="rosbag" type="play" name="player" output="log" args=" -l /ros_ws/src/trisect_emulator_sample.bag"/> -->
+
+  <node name="trisect_web_video_server" pkg="trisect_web_video_server" type="trisect_web_video_server"/>
+</launch>
