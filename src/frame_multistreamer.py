@@ -16,6 +16,7 @@ import logging
 
 # setup multi-threading
 RUN_BACKGROUND_THREADS = True  # kill flag
+CLIENT_TIMER = False
 
 def killAllThreads():
     """ set flag to stop all secondary threads """
@@ -89,19 +90,22 @@ def on_new_client(clientsocket, addr):
 
     tid = threading.get_ident()  # current thread id
     NEW_IMAGE_RECIEVED[tid] = False
-    t_init = time.perf_counter()
-    t_last_frame = time.perf_counter()
+    if CLIENT_TIMER:
+        t_init = time.perf_counter()
+        t_last_frame = time.perf_counter()
 
     while RUN_BACKGROUND_THREADS:
-        time.sleep(0.01)  # avoid latency caused by tcp traffic
+        time.sleep(0.2)  # avoid latency caused by tcp traffic
         if clientsocket and NEW_IMAGE_RECIEVED[tid]:
             # send image and prevent sending duplicates
             try:
-                t_start_send = time.perf_counter()
+                if CLIENT_TIMER:
+                    t_start_send = time.perf_counter()
                 clientsocket.sendall(MESSAGE)
-                t_fin_send = time.perf_counter()
-                print(f'Client timer, since start, {t_fin_send - t_init}, since last frame, {t_fin_send-t_last_frame}, send time, {t_fin_send-t_start_send}')
-                t_last_frame = t_fin_send
+                if CLIENT_TIMER:
+                    t_fin_send = time.perf_counter()
+                    print(f'Client timer, since start, {t_fin_send - t_init}, since last frame, {t_fin_send-t_last_frame}, send time, {t_fin_send-t_start_send}')
+                    t_last_frame = t_fin_send
 
                 NEW_IMAGE_RECIEVED[tid] = False 
             except socket.error as e:
