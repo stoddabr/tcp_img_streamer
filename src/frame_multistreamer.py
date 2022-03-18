@@ -20,8 +20,15 @@ CLIENT_TIMER = False
 
 def killAllThreads():
     """ set flag to stop all secondary threads """
+    global RUN_BACKGROUND_THREADS
+    global CLIENTSOCKET_LIST
+
     # set flag for threads to die piecefully
     RUN_BACKGROUND_THREADS = False  # kill threads
+
+    # aggressivly close all sockets
+    for client in CLIENTSOCKET_LIST:
+        client.close()
 
 # setup global socket variables 
 TCP_IP = '172.17.0.2'  # faster than dedicated ip address https://docs.python.org/3/howto/sockets.html#ipc
@@ -30,7 +37,7 @@ host_name = socket.gethostname()
 host_ip = socket.gethostbyname(host_name)
 MESSAGE = ''  # message to be sent to socket clients
 NEW_IMAGE_RECIEVED = {}  # logic to only send if image is new, key is "thread id" val is bool
-
+CLIENTSOCKET_LIST = []  # list of sockets
 
 # setup cv2 bridge
 #       based on https://gist.github.com/rethink-imcmahon/77a1a4d5506258f3dc1f
@@ -40,7 +47,7 @@ def image_callback(msg):
     global MESSAGE
     global NEW_IMAGE_RECIEVED
 
-    # print("Received an image!")
+    print("Received an image!")
     try:
         # Convert your ROS Image message to OpenCV2
         frame = bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -87,17 +94,22 @@ def on_new_client(clientsocket, addr):
     global MESSAGE
     global RUN_BACKGROUND_THREADS
     global NEW_IMAGE_RECIEVED
+    global CLIENTSOCKET_LIST
 
     tid = threading.get_ident()  # current thread id
     NEW_IMAGE_RECIEVED[tid] = False
+    CLIENTSOCKET_LIST.append(clientsocket)
+
     if CLIENT_TIMER:
         t_init = time.perf_counter()
         t_last_frame = time.perf_counter()
 
     while RUN_BACKGROUND_THREADS:
         time.sleep(0.2)  # avoid latency caused by tcp traffic
+        print('new img rec', NEW_IMAGE_RECIEVED[tid])
         if clientsocket and NEW_IMAGE_RECIEVED[tid]:
             # send image and prevent sending duplicates
+            print('sending img')
             try:
                 if CLIENT_TIMER:
                     t_start_send = time.perf_counter()
@@ -119,6 +131,7 @@ def on_new_client(clientsocket, addr):
                 break # exit send loop
 
     # after thread killed cleanup socket
+    print('closing client at thread', tid)
     clientsocket.close()
 
 
@@ -151,9 +164,11 @@ except KeyboardInterrupt:
     print('keyboard exit triggered')
     killAllThreads()
 except Exception as e:
+    killAllThreads()
     print('error in main loop:', e)
 
 # gracefully shutdown
+print('closing')
 s.close()
 killAllThreads()
 cv2.destroyAllWindows() 
