@@ -13,7 +13,7 @@ from sensor_msgs.msg import Image
 
 # setup socket 
 TCP_IP = 'localhost'  # faster than dedicated ip address https://docs.python.org/3/howto/sockets.html#ipc
-TCP_PORT = 5001
+TCP_PORT = 5001  # hmmm my notes say port 5010 TODO get to the bottom
 host_name = socket.gethostname()
 host_ip = socket.gethostbyname(host_name)
 MESSAGE = ''  # message to be sent to socket clients

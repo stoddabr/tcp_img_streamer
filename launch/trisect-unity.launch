@@ -1,0 +1,35 @@
+<launch>
+  <arg name="run_rostful" value="true"/>
+  <arg name="run_rosbridge" value="true"/>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"
+            if="$(arg run_rosbridge)">
+    <arg name="port" value="8082" />
+  </include>
+
+  <node name="rostful" pkg="rostful" type="server" 
+            args="--port 8081 --pub /left/camera_info --pub /right/camera_info"
+            if="$(arg run_rostful)">
+    <!-- Rostful needs topics to exist when it starts up, so delay
+         its start until the rosbag is playing -->
+    <param name="init_delay" value="2" />
+  </node>
+
+  <node pkg="tcp_frame_streamer" name="tcp_frame_streamer" type="frame_streamer.py">
+    <!-- TODO put topic name here <arg name="port" value="8082" /> -->
+    <param name="init_delay" value="2" />
+  </node>
+
+  <node name="trisect_web_video_server" pkg="trisect_web_video_server" type="trisect_web_video_server"/>
+
+  <!--  -->
+    <!-- ROS-TCP shit -->
+  <!--  -->
+    <arg name="tcp_ip" default="0.0.0.0"/>
+    <arg name="tcp_port" default="10000"/>
+
+    <node name="unity_endpoint" pkg="ros_tcp_endpoint" type="default_server_endpoint.py" output="screen">
+        <param name="tcp_ip" type="string" value="$(arg tcp_ip)"/>
+        <param name="tcp_port" type="int" value="$(arg tcp_port)"/>
+    </node>
+</launch>
